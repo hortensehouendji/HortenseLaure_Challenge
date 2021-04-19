@@ -8,11 +8,6 @@ phases:
       - echo "Entering Build Phase "
     runtime-versions:
       php: 7.4
-  # pre_build:
-  #   commands:
-  #     - echo " Prebuild stage !! Installing dependencies "
-  #     #- "npm install --silent --no-progress"
-  #     - echo " End of Prebuild !! dependencies installation done "
   build:
     commands:
       - echo "********BUILD PHASE CF PACKAGING testing **********"
