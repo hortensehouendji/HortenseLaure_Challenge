@@ -1,0 +1,266 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  AWS CloudFormation Sample Template IAM_Users_Groups_and_Policies: Sample
+  template showing how to create IAM users, groups and policies. It creates a single
+
+Parameters:
+  # The name of an existing key pair
+  myKeyPairName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  
+  # Instance type
+  myInstanceType:
+    Description: The type of EC2 instance to launch
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.nano
+    ConstraintDescription: the type must be a valid EC2 type
+  myVPC:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: VpcId of an existing VPC
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+
+  myPublicSubnet1:
+    Type: 'AWS::EC2::Subnet::Id'
+    Description: ID of an existing subnet the Virtual Private Cloud (VPC)
+    ConstraintDescription: must be an existing subnet
+
+  myPublicSubnet2:
+    Type: 'AWS::EC2::Subnet::Id'
+    Description: ID of an existing subnet the Virtual Private Cloud (VPC)
+    ConstraintDescription: must be an existing subnet
+
+Mappings:
+  RegionMap: # the ami to lauch
+    us-east-1:
+      HVM64: ami-04d29b6f966df1537
+    us-east-2:
+      HVM64: ami-09558250a3419e7d0
+    us-west-1:
+      HVM64: ami-08d9a394ac1c2994c      
+    us-west-2:
+      HVM64: ami-0e472933a1395e172 
+
+
+
+Resources:
+
+  # The security group of the ec2 instance to deploy (http, https, ssh)
+  myWebserverSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP ingress
+      VpcId: !Ref myVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+
+  MyEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          InstallAndRun:
+            - Install
+        Install:
+          packages:
+            yum:
+              httpd: []
+          files:
+            /var/www/html/index.html:
+              content: !Join 
+                - ''
+                - - |
+                    <html>
+                  - |2
+                      <head>
+                  - |2
+                        <title>Hello World</title>
+                  - |2
+                      </head>
+                  - |2
+                      <body>
+                  - |2
+                        <h1>Hello World!</h1>
+                  - |2
+                      </body>
+                  - |   
+                    </html>
+              mode: '000600'
+              owner: apache
+              group: apache
+          services:
+            sysvinit:
+              httpd:
+                enabled: 'true'
+                ensureRunning: 'true'
+    Properties:
+      InstanceType: !Ref myInstanceType # link to the instance type param
+      KeyName: !Ref myKeyPairName
+      ImageId: !FindInMap [RegionMap,  us-east-1, HVM64]
+      SecurityGroupIds:
+        - !Ref myWebserverSG
+      SubnetId: !Ref myPublicSubnet1 
+      Tags:
+        - Key: Name
+          Value: MyStackInstance
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              yum install -y aws-cfn-bootstrap
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource MyEC2Instance '
+            - '         --configsets InstallAndRun '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+  # Launching the instance
+  # ALB
+  ApplicationLoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: ApplicationLoadBn
+      SecurityGroups: 
+        - !Ref ALBSecurityGroup
+      Subnets: 
+        - !Ref myPublicSubnet1
+        - !Ref myPublicSubnet2
+  
+  # Application Load Balancer Security group
+  ALBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP ingress
+      VpcId: !Ref myVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0    
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0       
+
+  # target group
+  ALBTargetGroup:
+    DependsOn: MyEC2Instance
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckPath: /var/www/html/index.php
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      HealthCheckPort: "traffic-port"
+      HealthCheckProtocol: "HTTP"
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200-499'
+      Targets:
+        - Id: !Ref MyEC2Instance
+      VpcId: !Ref myVPC
+
+  # ALB Listeners
+  ALBListenerHTTPS:
+   Type: "AWS::ElasticLoadBalancingV2::Listener"
+   Properties:
+    Certificates: 
+      - !Ref myPrivateCertificate
+    DefaultActions:
+      - Type: "forward"
+        TargetGroupArn: !Ref ALBTargetGroup
+    LoadBalancerArn: !Ref ApplicationLoadBalancer
+    Port: 443
+    Protocol: "HTTPS" 
+
+  # HTTP Listeners with redirect to HTTPS
+  ALBListenerHTTP:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+       - Type: "redirect"
+         RedirectConfig:
+          Protocol: "HTTPS"
+          Port: 443
+          Host: "#{host}"
+          Path: "/#{path}"
+          Query: "#{query}"
+          StatusCode: "HTTP_301"
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: "HTTP"
+
+  # Creating a ROOT certificate authority
+  myPrivateCA:
+    Type: 'AWS::ACMPCA::CertificateAuthority'
+    Properties:
+      Type: ROOT
+      KeyAlgorithm: RSA_2048
+      SigningAlgorithm: SHA256WITHRSA 
+      Subject:
+        Country: US
+        State: Maryland
+        Locality: Silver Spring
+        Organization: MyOrganization
+        OrganizationalUnit: MyOrganizationalUnit
+        CommonName: My private CA
+        SerialNumber: '87456123'
+      RevocationConfiguration:
+        CrlConfiguration:
+          Enabled: false
+
+ # Creating a ROOT certificate authority Certificate
+  myPrivateCACertificate:
+    Type: 'AWS::ACMPCA::Certificate'
+    Properties:
+      CertificateAuthorityArn: !Ref myPrivateCA
+      CertificateSigningRequest: !GetAtt
+        - myPrivateCA
+        - CertificateSigningRequest
+      SigningAlgorithm: SHA256WITHRSA 
+      TemplateArn: 'arn:aws:acm-pca:::template/RootCACertificate/V1'
+      Validity:
+        Type: YEARS
+        Value: 5
+
+ # Acticate the certificate authority
+  myPrivateCAActivation:
+    Type: 'AWS::ACMPCA::CertificateAuthorityActivation'
+    Properties:
+      CertificateAuthorityArn: !Ref myPrivateCA
+      Certificate: !GetAtt
+        - myPrivateCACertificate
+        - Certificate
+      Status: ACTIVE
+
+  # Creating the Self Signed Certificate
+  myPrivateCertificate:
+    DependsOn: myPrivateCAActivation
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      CertificateAuthorityArn: !Ref myPrivateCA
+      DomainName: 'myStaticWebserver.com'
+      SubjectAlternativeNames:
+        - "*.myStaticWebserver.com"
