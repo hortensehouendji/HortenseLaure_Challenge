@@ -8,18 +8,15 @@ phases:
       - echo "Entering Build Phase "
     runtime-versions:
       php: 7.4
-  pre_build:
-    commands:
-      - echo " Prebuild stage !! Installing dependencies "
-      #- "npm install --silent --no-progress"
-      - echo " End of Prebuild !! dependencies installation done "
+  # pre_build:
+  #   commands:
+  #     - echo " Prebuild stage !! Installing dependencies "
+  #     #- "npm install --silent --no-progress"
+  #     - echo " End of Prebuild !! dependencies installation done "
   build:
     commands:
       - echo "********BUILD PHASE CF PACKAGING testing **********"
       - "aws cloudformation package --template-file StaticWebServer.yml --s3-bucket staticwebserverbucket --output-template-file packaged-webserver.yaml --region us-east-1"
-  post_build:
-    commands:
-      - echo " Build Phase Completed "
 
 artifacts:
   discard-paths: true
