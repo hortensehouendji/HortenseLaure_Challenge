@@ -10,7 +10,7 @@ phases:
       php: 7.4
   build:
     commands:
-      - echo "********BUILD PHASE CF PACKAGING testing **********"
+      - echo "********BUILD PHASE CF PACKAGING  **********"
       - "aws cloudformation package --template-file StaticWebServer.yml --s3-bucket staticwebserverbucket --output-template-file packaged-webserver.yaml --region us-east-1"
 
 artifacts:
