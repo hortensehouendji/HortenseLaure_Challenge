@@ -219,7 +219,7 @@ Resources:
     Properties:
       HostedZoneId : Z017411632M0T7OBK42AT
       RecordSets:
-      - Name: staticwebserver.hortensehouendji.com 
+      - Name: staticwebservers.hortensehouendji.com 
         Type: A
         TTL: '50'
         ResourceRecords:
