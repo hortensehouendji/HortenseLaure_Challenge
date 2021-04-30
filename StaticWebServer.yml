@@ -188,7 +188,7 @@ Resources:
    Properties:
     Certificates: 
       #- !Ref myPrivateCertificate
-      - arn:aws:acm:ca-central-1:899624289050:certificate/8aa006d4-5ced-49d6-87ca-f226d673354e
+      - arn:aws:acm:us-east-1:899624289050:certificate/01576d13-5754-411a-9569-20a0a3d888a7
     DefaultActions:
       - Type: "forward"
         TargetGroupArn: !Ref ALBTargetGroup
