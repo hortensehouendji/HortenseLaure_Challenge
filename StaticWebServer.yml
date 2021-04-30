@@ -28,7 +28,7 @@ Parameters:
 
   myPublicSubnet1:
     Type: 'AWS::EC2::Subnet::Id'
-    Description: ID of an existing subnet the Virtual Private Cloud (VPC)
+    Description: ID of an existing subnet the Virtual Private Cloud (VPC))
     ConstraintDescription: must be an existing subnet
 
   myPublicSubnet2:
