@@ -215,6 +215,7 @@ Resources:
 
   # DNS record for the private website
   myDNSRecord:
+    DependsOn: ApplicationLoadBalancer
     Type: AWS::Route53::RecordSetGroup
     Properties:
       HostedZoneId : Z017411632M0T7OBK42AT
