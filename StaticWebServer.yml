@@ -213,6 +213,18 @@ Resources:
       Port: 80
       Protocol: "HTTP"
 
+  # DNS record for the private website
+  myDNSRecord:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId : Z017411632M0T7OBK42AT
+      RecordSets:
+      - Name: staticwebserver.hortensehouendji.com 
+        Type: A
+        TTL: '50'
+        ResourceRecords:
+        - !GetAtt ApplicationLoadBalancer.DNSName
+
 #   # Creating a ROOT certificate authority
 #   myPrivateCA:
 #     Type: 'AWS::ACMPCA::CertificateAuthority'
