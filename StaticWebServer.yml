@@ -187,7 +187,8 @@ Resources:
    Type: "AWS::ElasticLoadBalancingV2::Listener"
    Properties:
     Certificates: 
-      - !Ref myPrivateCertificate
+      #- !Ref myPrivateCertificate
+      - 	arn:aws:acm:ca-central-1:899624289050:certificate/8aa006d4-5ced-49d6-87ca-f226d673354e
     DefaultActions:
       - Type: "forward"
         TargetGroupArn: !Ref ALBTargetGroup
@@ -212,55 +213,55 @@ Resources:
       Port: 80
       Protocol: "HTTP"
 
-  # Creating a ROOT certificate authority
-  myPrivateCA:
-    Type: 'AWS::ACMPCA::CertificateAuthority'
-    Properties:
-      Type: ROOT
-      KeyAlgorithm: RSA_2048
-      SigningAlgorithm: SHA256WITHRSA 
-      Subject:
-        Country: US
-        State: Maryland
-        Locality: Silver Spring
-        Organization: MyOrganization
-        OrganizationalUnit: MyOrganizationalUnit
-        CommonName: My private CA
-        SerialNumber: '87456123'
-      RevocationConfiguration:
-        CrlConfiguration:
-          Enabled: false
+#   # Creating a ROOT certificate authority
+#   myPrivateCA:
+#     Type: 'AWS::ACMPCA::CertificateAuthority'
+#     Properties:
+#       Type: ROOT
+#       KeyAlgorithm: RSA_2048
+#       SigningAlgorithm: SHA256WITHRSA 
+#       Subject:
+#         Country: US
+#         State: Maryland
+#         Locality: Silver Spring
+#         Organization: MyOrganization
+#         OrganizationalUnit: MyOrganizationalUnit
+#         CommonName: My private CA
+#         SerialNumber: '87456123'
+#       RevocationConfiguration:
+#         CrlConfiguration:
+#           Enabled: false
 
- # Creating a ROOT certificate authority Certificate
-  myPrivateCACertificate:
-    Type: 'AWS::ACMPCA::Certificate'
-    Properties:
-      CertificateAuthorityArn: !Ref myPrivateCA
-      CertificateSigningRequest: !GetAtt
-        - myPrivateCA
-        - CertificateSigningRequest
-      SigningAlgorithm: SHA256WITHRSA 
-      TemplateArn: 'arn:aws:acm-pca:::template/RootCACertificate/V1'
-      Validity:
-        Type: YEARS
-        Value: 5
+#  # Creating a ROOT certificate authority Certificate
+#   myPrivateCACertificate:
+#     Type: 'AWS::ACMPCA::Certificate'
+#     Properties:
+#       CertificateAuthorityArn: !Ref myPrivateCA
+#       CertificateSigningRequest: !GetAtt
+#         - myPrivateCA
+#         - CertificateSigningRequest
+#       SigningAlgorithm: SHA256WITHRSA 
+#       TemplateArn: 'arn:aws:acm-pca:::template/RootCACertificate/V1'
+#       Validity:
+#         Type: YEARS
+#         Value: 5
 
- # Acticate the certificate authority
-  myPrivateCAActivation:
-    Type: 'AWS::ACMPCA::CertificateAuthorityActivation'
-    Properties:
-      CertificateAuthorityArn: !Ref myPrivateCA
-      Certificate: !GetAtt
-        - myPrivateCACertificate
-        - Certificate
-      Status: ACTIVE
+#  # Acticate the certificate authority
+#   myPrivateCAActivation:
+#     Type: 'AWS::ACMPCA::CertificateAuthorityActivation'
+#     Properties:
+#       CertificateAuthorityArn: !Ref myPrivateCA
+#       Certificate: !GetAtt
+#         - myPrivateCACertificate
+#         - Certificate
+#       Status: ACTIVE
 
-  # Creating the Self Signed Certificate
-  myPrivateCertificate:
-    DependsOn: myPrivateCAActivation
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      CertificateAuthorityArn: !Ref myPrivateCA
-      DomainName: 'myStaticWebserver.com'
-      SubjectAlternativeNames:
-        - "*.myStaticWebserver.com"
+#   # Creating the Self Signed Certificate
+#   myPrivateCertificate:
+#     DependsOn: myPrivateCAActivation
+#     Type: AWS::CertificateManager::Certificate
+#     Properties:
+#       CertificateAuthorityArn: !Ref myPrivateCA
+#       DomainName: 'myStaticWebserver.com'
+#       SubjectAlternativeNames:
+#         - "*.myStaticWebserver.com"
